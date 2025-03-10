@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realtime Audio Chat with OpenAI</title>
+</head>
+<body>
+    <h1>Realtime Audio Chat with OpenAI</h1>
+    <button id="startBtn">Start Recording</button>
+    <button id="stopBtn" disabled>Stop Recording</button>
+    <div id="response"></div>
+
+    <script>
+        const startButton = document.getElementById('startBtn');
+        const stopButton = document.getElementById('stopBtn');
+        let mediaRecorder;
+        let audioChunks = [];
+        let socket;
+
+        function connectWebSocket() {
+            socket = new WebSocket('ws://localhost:8080');
+
+            socket.onopen = () => {
+                console.log('Connected to WebSocket server');
+            };
+
+            socket.onmessage = (event) => {
+                console.log('Received message from server:', event.data);
+                document.getElementById('response').innerText = 'Response from OpenAI: ' + event.data;
+            };
+
+            socket.onclose = () => {
+                console.log('Disconnected from WebSocket server');
+            };
+        }
+
+        startButton.addEventListener('click', () => {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then((stream) => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.start();
+                    console.log('Recording started...');
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        const arrayBuffer = audioBlob.arrayBuffer();
+                        
+                        if (socket.readyState === WebSocket.OPEN) {
+                            socket.send(arrayBuffer);
+                        }
+                    };
+
+                    stopButton.disabled = false;
+                    startButton.disabled = true;
+                })
+                .catch((error) => {
+                    console.error('Error accessing microphone:', error);
+                });
+        });
+
+        stopButton.addEventListener('click', () => {
+            mediaRecorder.stop();
+            stopButton.disabled = true;
+            startButton.disabled = false;
+            console.log('Recording stopped.');
+        });
+
+        connectWebSocket();
+    </script>
+</body>
+</html>
