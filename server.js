@@ -2,10 +2,10 @@ const WebSocket = require('ws');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-
+require('dotenv').config();
+const apiKey = process.env.API_KEY;
 const wss = new WebSocket.Server({ port: 8080 });
 
-const OPENAI_API_KEY = 'YOUR_OPENAI_API_KEY';
 const OPENAI_API_URL = 'wss://api.openai.com/v1/realtime';
 
 wss.on('connection', (ws) => {
@@ -13,7 +13,7 @@ wss.on('connection', (ws) => {
 
     const openaiSocket = new WebSocket(OPENAI_API_URL, {
         headers: {
-            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Authorization': `Bearer ${apiKey}`,
         },
     });
 
